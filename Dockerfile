@@ -27,5 +27,7 @@ COPY --from=builder /app/main .
 # Expose the port your app runs on
 EXPOSE 8080
 
+EXPOSE 9090
+
 # Run the binary
 ENTRYPOINT ["./main"]

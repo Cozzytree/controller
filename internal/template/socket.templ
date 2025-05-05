@@ -2,23 +2,48 @@ package template
 
 templ Socket() {
 	@Layout ("Socket") {
-		<div class="w-full bg-[#202018] text-white flex flex-col">
-			<input id="msg-input" class="p-2 rounded-md"/>
-			<button id="send">send</button>
-			<div class="flex items-center gap-3">
-				<button id="light-on" class="p-1 text-sm">LIGHT ON</button>
-				<button id="light-off" class="p-1 text-sm">LIGHT OFF</button>
+		<div class="w-full md:container mx-auto p-2 md:p-5 bg-[#202018] text-white flex flex-col">
+			<div class="flex flex-col items-center justify-center w-full">
+				<input id="msg-input" class="w-full px-3 py-1 text-sm rounded-lg mb-2 border-2 border-white outline-none focus:ring-0" placeholder="Type Message..."/>
+				<button id="send" class="w-fit py-2 px-4 cursor-pointer text-sm border border-white font-bold rounded-lg">
+					Send
+				</button>
+			</div>
+
+			<div class="flex flex-col justify-senter items-center gap-3">
+				<h1 class="text-xl text-center font-extrabold tracking-wide">COMMANDS</h1>
+
+				<div class="flex gap-3 items-center">
+					<button id="blink" class="p-2 cursor-pointer text-sm border-2 border-white font-bold rounded-lg">
+						BLINK ON
+					</button>
+				</div>
 			</div>
 		</div>
 		<script>
 		   let err = null;
+			let blink_state = false
 
 		   document.addEventListener("DOMContentLoaded", () => {
-		      const socket = new WebSocket("ws://localhost:8080/ws/admin");
+            const inputMsg = document.getElementById("msg-input");
+            const send = document.getElementById("send");
+           	const blink = document.getElementById("blink");
+		      // const socket = new WebSocket("ws://localhost:8080/ws/admin");
+		      const socket = new WebSocket("ws://localhost:80/ws/admin");
 
 		      // Handle incoming WebSocket messages
 		      socket.onmessage = (e) => {
-		         console.log("Message from server:", e.data);
+		         const data = JSON.parse(e?.data);
+					console.log(data);
+					if (data?.type === "blink") {
+					   if (data?.msg === "on") {
+							blink.textContent = "BLINK OFF";
+							blink_state = true;
+						} else if (data?.msg === "off") {
+							blink.textContent = "BLINK ON";
+							blink_state = false;
+						}
+					}
 		      };
 
 		      // Handle successful WebSocket connection
@@ -40,18 +65,12 @@ templ Socket() {
 		         err = "closed";
 		      };
 
-		      // Handle message input and send to server
-		      const inputMsg = document.getElementById("msg-input");
-		      const send = document.getElementById("send");
-				const lightOn = document.getElementById("light-on");
-				const lightOff = document.getElementById("light-off");
-
-				lightOn.addEventListener("click", () => {
-				   socket.send("LIGHT ON")
-				});
-
-				lightOff.addEventListener("click", () => {
-				   socket.send("LIGHT OFF")
+				blink.addEventListener("click", () => {
+				   if (blink_state) {
+					   socket.send("BLINK OFF")
+				   } else {
+					   socket.send("BLINK ON")
+				   }
 				});
 
 		      send.addEventListener("click", () => {

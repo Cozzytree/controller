@@ -33,24 +33,51 @@ func main() {
 	log.Println("TCP server listeninig on port", os.Getenv("TCP_PORT"))
 
 	fmt.Println(runtime.NumGoroutine())
+
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			panic(err)
 		}
-		defer func() {
-			conn.Close()
-			hub.CUnregister <- ws.CStruct{
+
+		go func(conn net.Conn) {
+			defer func() {
+				conn.Close()
+				hub.CUnregister <- ws.CStruct{
+					Id:   "control",
+					Conn: conn,
+				}
+			}()
+
+			hub.CRegister <- ws.CStruct{
 				Id:   "control",
 				Conn: conn,
 			}
-		}()
 
-		conn.Write([]byte("Hello world"))
+			conn.Write([]byte("PING"))
 
-		hub.CRegister <- ws.CStruct{
-			Id:   "control",
-			Conn: conn,
-		}
+			buffer := make([]byte, 1024)
+
+			for {
+				err := readMessage(conn, hub.ClientBroadCastChan, buffer)
+				if err != nil {
+					log.Println("connection read error:", err)
+					break
+				}
+			}
+		}(conn)
 	}
+}
+
+func readMessage(c net.Conn, sendChan chan<- []byte, buffer []byte) error {
+	n, err := c.Read(buffer)
+	if err != nil {
+		fmt.Println("error while reading", err.Error())
+		return err
+	}
+
+	fmt.Println("recieved message from client", string(buffer[:n]))
+	sendChan <- buffer[:n]
+
+	return nil
 }

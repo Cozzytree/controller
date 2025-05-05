@@ -7,6 +7,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type msg struct {
+	Type string `json:"type"`
+	Msg  string `json:"msg"`
+}
+
 type WS_Client struct {
 	Client   *websocket.Conn
 	Hub      *Hub
@@ -53,12 +58,30 @@ func (c *WS_Client) WritePump() {
 	}()
 
 	for e := range c.SendChan {
-		c.Client.WriteMessage(websocket.BinaryMessage, e)
+		var err error
+		fmt.Println("sending message to client", string(e))
+		switch string(e) {
+		case "BLINK-ON":
+			err = c.Client.WriteJSON(msg{Type: "blink", Msg: "on"})
+		case "BLINK-OFF":
+			err = c.Client.WriteJSON(msg{Type: "blink", Msg: "off"})
+		default:
+			fmt.Println("Unknown command")
+		}
+
+		if err != nil {
+			fmt.Println("Write error:", err)
+			break
+		}
 	}
 }
 
 func (c *WS_Client) ID() string {
 	return c.ClientId
+}
+
+func (c *WS_Client) SendMessage(b []byte) {
+	c.SendChan <- b
 }
 
 func InitNewClient(w http.ResponseWriter, r *http.Request, hub *Hub) {

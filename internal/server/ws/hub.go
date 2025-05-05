@@ -9,6 +9,8 @@ type ClientInterface interface {
 
 	WritePump()
 
+	SendMessage(m []byte)
+
 	ID() string
 }
 
@@ -26,8 +28,11 @@ type Hub struct {
 	UnregisterChan chan ClientInterface
 
 	BroadCastChan chan []byte
-	Clients       map[string]ClientInterface
-	Controller    map[string]net.Conn
+
+	ClientBroadCastChan chan []byte
+
+	Clients    map[string]ClientInterface
+	Controller map[string]net.Conn
 }
 
 func NewHub() *Hub {
@@ -38,9 +43,12 @@ func NewHub() *Hub {
 		CRegister:   make(chan CStruct, 10),
 		CUnregister: make(chan CStruct, 10),
 
-		Clients:       make(map[string]ClientInterface),
-		BroadCastChan: make(chan []byte),
-		Controller:    make(map[string]net.Conn),
+		Clients: make(map[string]ClientInterface),
+
+		BroadCastChan:       make(chan []byte),
+		ClientBroadCastChan: make(chan []byte),
+
+		Controller: make(map[string]net.Conn),
 	}
 }
 
@@ -58,6 +66,10 @@ func (h *Hub) Run() {
 		case b := <-h.BroadCastChan:
 			for _, c := range h.Controller {
 				c.Write(b)
+			}
+		case b := <-h.ClientBroadCastChan:
+			for _, ci := range h.Clients {
+				ci.SendMessage(b)
 			}
 		}
 	}
