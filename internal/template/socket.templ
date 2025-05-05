@@ -1,0 +1,72 @@
+package template
+
+templ Socket() {
+	@Layout ("Socket") {
+		<div class="w-full bg-[#202018] text-white flex flex-col">
+			<input id="msg-input" class="p-2 rounded-md"/>
+			<button id="send">send</button>
+			<div class="flex items-center gap-3">
+				<button id="light-on" class="p-1 text-sm">LIGHT ON</button>
+				<button id="light-off" class="p-1 text-sm">LIGHT OFF</button>
+			</div>
+		</div>
+		<script>
+		   let err = null;
+
+		   document.addEventListener("DOMContentLoaded", () => {
+		      const socket = new WebSocket("ws://localhost:8080/ws/admin");
+
+		      // Handle incoming WebSocket messages
+		      socket.onmessage = (e) => {
+		         console.log("Message from server:", e.data);
+		      };
+
+		      // Handle successful WebSocket connection
+		      socket.onopen = (e) => {
+		         console.log("WebSocket connection opened:", e);
+		      };
+
+		      // Handle WebSocket errors
+		      socket.onerror = (e) => {
+		         console.error("WebSocket error:", e);
+		         err = "error";
+		         // Optionally, show an error message in the UI
+		         alert("WebSocket error, please check the console.");
+		      };
+
+		      // Handle WebSocket closure
+		      socket.onclose = (e) => {
+		         console.log("WebSocket connection closed:", e);
+		         err = "closed";
+		      };
+
+		      // Handle message input and send to server
+		      const inputMsg = document.getElementById("msg-input");
+		      const send = document.getElementById("send");
+				const lightOn = document.getElementById("light-on");
+				const lightOff = document.getElementById("light-off");
+
+				lightOn.addEventListener("click", () => {
+				   socket.send("LIGHT ON")
+				});
+
+				lightOff.addEventListener("click", () => {
+				   socket.send("LIGHT OFF")
+				});
+
+		      send.addEventListener("click", () => {
+		         if (socket.readyState === WebSocket.OPEN) {
+   					const d = inputMsg.value
+                  if (d.length === 0) return
+
+                  socket.send(d.trim())
+
+                  inputMsg.value = ""
+		         } else {
+		            console.warn("WebSocket is not open yet.");
+		         }
+		      });
+		   });
+		</script>
+	}
+}
